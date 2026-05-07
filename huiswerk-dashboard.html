@@ -293,6 +293,49 @@
     .clear-scores-btn:hover { background: var(--red-light); }
     .score-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 
+    /* ── MODE TOGGLE ── */
+    .mode-toggle { display: flex; gap: 0; border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .mode-btn { padding: 7px 16px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; background: var(--white); color: var(--text-muted); transition: all 0.15s; }
+    .mode-btn.active.print { background: #1e293b; color: white; }
+    .mode-btn.active.online { background: #7c3aed; color: white; }
+    .mode-btn:not(.active):hover { background: var(--bg); }
+
+    /* ── ONLINE MODE QUESTIONS ── */
+    .online-question { margin-bottom: 1.5rem; }
+    .online-question-text { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
+    .online-answer-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      transition: border-color 0.15s;
+      background: var(--bg);
+    }
+    .online-answer-input:focus { outline: none; border-color: #7c3aed; background: white; }
+    .online-answer-input.correct { border-color: var(--green); background: var(--green-light); }
+    .online-answer-input.wrong { border-color: var(--red); background: var(--red-light); }
+    .answer-feedback { font-size: 13px; font-weight: 700; margin-top: 5px; padding: 4px 10px; border-radius: 6px; display: inline-block; }
+    .answer-feedback.correct { color: var(--green); background: var(--green-light); }
+    .answer-feedback.wrong { color: var(--red); background: var(--red-light); }
+    .check-btn {
+      width: 100%; padding: 12px; background: #7c3aed; color: white; border: none;
+      border-radius: var(--radius-sm); font-size: 15px; font-weight: 800; cursor: pointer;
+      font-family: inherit; margin-top: 1rem; transition: background 0.15s; display: flex;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .check-btn:hover { background: #6d28d9; }
+    .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .online-score-banner {
+      margin-top: 1.5rem; padding: 1.25rem 1.5rem; border-radius: var(--radius);
+      font-size: 18px; font-weight: 800; text-align: center; animation: slideIn 0.3s ease;
+    }
+    .online-score-banner.great { background: var(--green-light); color: var(--green); border: 2px solid #bbf7d0; }
+    .online-score-banner.ok { background: var(--yellow-light); color: #92400e; border: 2px solid #fde68a; }
+    .online-score-banner.retry { background: var(--red-light); color: var(--red); border: 2px solid #fecaca; }
+
     /* ── PRINT ── */
     @media print {
       .topbar, .group-tabs, .subjects-grid, .config-panel, .section-label, .output-actions, .print-btn, .score-section, #dockTip { display: none !important; }
@@ -347,6 +390,13 @@
     <div class="config-panel">
       <div class="config-title" id="configTitle">⚙ Instellingen</div>
       <div class="config-grid">
+        <div class="config-field">
+          <label>Modus</label>
+          <div class="mode-toggle">
+            <button class="mode-btn print active" id="modePrint" onclick="setMode('print')">🖨 Afdrukken</button>
+            <button class="mode-btn online" id="modeOnline" onclick="setMode('online')">💻 Online maken</button>
+          </div>
+        </div>
         <div class="config-field">
           <label>Onderwerp</label>
           <select id="topicSelect"></select>
@@ -437,6 +487,15 @@ let currentGroup = 5;
 let currentSubject = null;
 let currentNumQuestions = 10;
 let currentPlayer = null; // 'Flo' or 'Maxine'
+let currentMode = 'print'; // 'print' or 'online'
+let lastGeneratedQuestions = []; // for online grading
+
+// ── MODE ──
+function setMode(m) {
+  currentMode = m;
+  document.getElementById('modePrint').className = 'mode-btn print' + (m === 'print' ? ' active' : '');
+  document.getElementById('modeOnline').className = 'mode-btn online' + (m === 'online' ? ' active' : '');
+}
 
 // ── PLAYER SELECTOR ──
 function setPlayer(name) {
@@ -633,44 +692,61 @@ function selectSubject(id) {
 }
 
 // ── GENERATE ──
-function buildPrompt(subject, group, topic, num, diff) {
+function buildPrompt(subject, group, topic, num, diff, online) {
   const age = group === 5 ? '8-9' : '9-10';
+  const jsonNote = online ? ` Geef je antwoord ALLEEN als een JSON array, geen andere tekst: [{"q":"vraag tekst","a":"antwoord"},...]. Zorg dat antwoorden kort en concreet zijn (1-5 woorden).` : '';
+  const noAnswers = online ? '' : ' Schrijf alleen de genummerde vragen, geen antwoorden.';
+  const start = online ? '' : ' Begin direct met "1."';
   const prompts = {
-    rekenen:    `Maak ${num} rekenoefeningen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Schrijf alleen de genummerde vragen, geen antwoorden. Gebruik realistische getallen passend bij groep ${group}. Begin direct met "1."`,
-    taal:       `Maak ${num} taalvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Schrijf alleen de genummerde vragen, geen antwoorden. Begin direct met "1."`,
-    spelling:   `Maak ${num} spellingvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Mix van invulvragen en meerkeuzevragen. Geen antwoorden. Begin direct met "1."`,
-    begrijpend: `Schrijf een korte tekst (${topic.toLowerCase()}, ongeveer 120 woorden, passend voor groep ${group}). Daarna ${num} begrijpend leesvragen. Moeilijkheid: ${diff}.\n\nFormaat:\nTEKST:\n[tekst hier]\n\nVRAGEN:\n1. [vraag]\n...geen antwoorden.`,
-    topografie: `Maak ${num} topografievragen voor groep ${group}, moeilijkheid: ${diff}. Onderwerp: ${topic}. Gebruik ongeveer 80% vragen over Nederland (provincies, steden, rivieren, landschappen) en 20% over de rest van de wereld (bekende hoofdsteden, makkelijk herkenbare monumenten zoals de Eiffeltoren, Big Ben, etc.). Kindvriendelijke taal, afwisselende vraagtypes. Geen antwoorden. Begin direct met "1."`,
-    engels:     `Maak ${num} Engelse oefenvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Mix van vertalen, invullen en kiezen. Geen antwoorden. Begin direct met "1."`,
-    geschiedenis:`Maak ${num} geschiedenisvragen over: ${topic}. Groep ${group}, moeilijkheid: ${diff}. Kindvriendelijke taal. Geen antwoorden. Begin direct met "1."`,
-    natuur:     `Maak ${num} natuur & milieuvragen over: ${topic}. Groep ${group}, moeilijkheid: ${diff}. Prikkelende, nieuwsgierig makende vragen. Geen antwoorden. Begin direct met "1."`,
+    rekenen:    `Maak ${num} rekenoefeningen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}.${noAnswers} Gebruik realistische getallen passend bij groep ${group}.${start}${jsonNote}`,
+    taal:       `Maak ${num} taalvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}.${noAnswers}${start}${jsonNote}`,
+    spelling:   `Maak ${num} spellingvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Mix van invulvragen en meerkeuzevragen.${noAnswers}${start}${jsonNote}`,
+    begrijpend: online
+      ? `Schrijf een korte tekst (${topic.toLowerCase()}, ongeveer 80 woorden, passend voor groep ${group}) en maak daarna ${num} begrijpend leesvragen met korte antwoorden. Moeilijkheid: ${diff}. Geef je antwoord ALLEEN als JSON object: {"tekst":"...","vragen":[{"q":"...","a":"..."}]}`
+      : `Schrijf een korte tekst (${topic.toLowerCase()}, ongeveer 120 woorden, passend voor groep ${group}). Daarna ${num} begrijpend leesvragen. Moeilijkheid: ${diff}.\n\nFormaat:\nTEKST:\n[tekst hier]\n\nVRAGEN:\n1. [vraag]\n...geen antwoorden.`,
+    topografie: `Maak ${num} topografievragen voor groep ${group}, moeilijkheid: ${diff}. Onderwerp: ${topic}. Gebruik ongeveer 80% vragen over Nederland en 20% over de rest van de wereld (bekende hoofdsteden, monumenten zoals Eiffeltoren, Big Ben). Kindvriendelijke taal, afwisselende vraagtypes.${noAnswers}${start}${jsonNote}`,
+    engels:     `Maak ${num} Engelse oefenvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Mix van vertalen, invullen en kiezen.${noAnswers}${start}${jsonNote}`,
+    geschiedenis:`Maak ${num} geschiedenisvragen over: ${topic}. Groep ${group}, moeilijkheid: ${diff}. Kindvriendelijke taal.${noAnswers}${start}${jsonNote}`,
+    natuur:     `Maak ${num} natuur & milieuvragen over: ${topic}. Groep ${group}, moeilijkheid: ${diff}. Prikkelende vragen.${noAnswers}${start}${jsonNote}`,
   };
   return prompts[subject.id] || prompts.rekenen;
 }
 
-async function generate() {
+function renderOnlineQuestions(questions, begrijpendTekst) {
+  lastGeneratedQuestions = questions;
+  let html = '';
+  if (begrijpendTekst) {
+    html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;line-height:1.8;color:var(--text);">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📖 Lees de tekst</div>
+      ${escHtml(begrijpendTekst)}
+    </div>`;
+  }
+  questions.forEach((q, i) => {
+    html += `<div class="online-question">
+      <div class="online-question-text">${i+1}. ${escHtml(q.q)}</div>
+      <input type="text" class="online-answer-input" id="ans-${i}" placeholder="Jouw antwoord…" autocomplete="off" />
+      <div class="answer-feedback" id="fb-${i}" style="display:none;"></div>
+    </div>`;
+  });
+  html += `<button class="check-btn" id="checkBtn" onclick="checkAnswers()">🔍 Controleer mijn antwoorden!</button>
+  <div id="onlineScoreBanner" style="display:none;"></div>`;
+  return html;
+}
+
+async function checkAnswers() {
   const key = getKey();
   if (!key) { openModal(); return; }
-  if (!currentSubject) return;
-
-  const topic = document.getElementById('topicSelect').value;
-  const num   = parseInt(document.getElementById('numSelect').value);
-  const diff  = document.getElementById('diffSelect').value;
-  const group = currentGroup;
-  currentNumQuestions = num;
-
-  const btn = document.getElementById('genBtn');
+  const btn = document.getElementById('checkBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Bezig…';
+  btn.innerHTML = '⏳ Nakijken…';
 
-  document.getElementById('outputPanel').innerHTML = `
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Vragen worden gegenereerd voor groep ${group}…</p>
-    </div>`;
+  const answers = lastGeneratedQuestions.map((q, i) => ({
+    q: q.q,
+    correct: q.a,
+    given: document.getElementById('ans-' + i)?.value?.trim() || ''
+  }));
 
-  const prompt = buildPrompt(currentSubject, group, topic, num, diff);
-  const systemInstruction = `Je bent een ervaren Nederlandse basisschoolleraar die huiswerkopdrachten maakt voor groep ${group}. Schrijf altijd in correct, helder Nederlands. Nooit antwoorden of antwoordsleutels vermelden.`;
+  const prompt = `Je bent een vriendelijke basisschoolleraar. Controleer deze antwoorden van een kind en geef terug of elk antwoord goed of fout is. Wees ruimhartig: kleine spelfouten of synoniemen tellen als goed. Geef je antwoord ALLEEN als JSON array, geen andere tekst: [{"correct": true/false, "feedback": "kort feedbackzinnetje in het Nederlands (max 8 woorden)"},...]\n\nVragen en antwoorden:\n${answers.map((a,i) => `${i+1}. Vraag: "${a.q}" | Correct antwoord: "${a.correct}" | Gegeven antwoord: "${a.given}"`).join('\n')}`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -684,6 +760,102 @@ async function generate() {
       body: JSON.stringify({
         model: 'claude-opus-4-5',
         max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '[]';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const results = JSON.parse(clean);
+
+    let correct = 0;
+    results.forEach((r, i) => {
+      const input = document.getElementById('ans-' + i);
+      const fb = document.getElementById('fb-' + i);
+      if (input) { input.className = 'online-answer-input ' + (r.correct ? 'correct' : 'wrong'); }
+      if (fb) {
+        fb.textContent = r.correct ? '✅ ' + r.feedback : '❌ ' + r.feedback;
+        fb.className = 'answer-feedback ' + (r.correct ? 'correct' : 'wrong');
+        fb.style.display = 'inline-block';
+      }
+      if (r.correct) correct++;
+    });
+
+    const total = results.length;
+    const cls = getScoreClass(correct, total);
+    const pct = Math.round(correct / total * 100);
+    const msgs = {
+      great: `🌟 Wauw! ${correct} van de ${total} goed — ${pct}%! Fantastisch gedaan! 🎉`,
+      ok: `👍 Goed bezig! ${correct} van de ${total} goed — ${pct}%. Blijf oefenen!`,
+      retry: `💪 ${correct} van de ${total} goed — ${pct}%. Nog een keer proberen?`
+    };
+    const banner = document.getElementById('onlineScoreBanner');
+    banner.textContent = msgs[cls];
+    banner.className = 'online-score-banner ' + cls;
+    banner.style.display = 'block';
+
+    // auto-save score
+    if (currentPlayer) {
+      saveScoreEntry({
+        player: currentPlayer,
+        subjectId: currentSubject.id,
+        subjectName: currentSubject.name,
+        subjectEmoji: currentSubject.emoji,
+        topic: document.getElementById('topicSelect').value,
+        correct, total,
+        date: new Date().toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' })
+      });
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '🔍 Controleer mijn antwoorden!';
+    alert('Fout bij nakijken: ' + e.message);
+    return;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '🔄 Opnieuw proberen';
+  btn.onclick = () => location.reload();
+}
+
+async function generate() {
+  const key = getKey();
+  if (!key) { openModal(); return; }
+  if (!currentSubject) return;
+
+  const topic = document.getElementById('topicSelect').value;
+  const num   = parseInt(document.getElementById('numSelect').value);
+  const diff  = document.getElementById('diffSelect').value;
+  const group = currentGroup;
+  const online = currentMode === 'online';
+  currentNumQuestions = num;
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Bezig…';
+
+  document.getElementById('outputPanel').innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Vragen worden gegenereerd voor groep ${group}…</p>
+    </div>`;
+
+  const prompt = buildPrompt(currentSubject, group, topic, num, diff, online);
+  const systemInstruction = online
+    ? `Je bent een ervaren Nederlandse basisschoolleraar. Geef ALTIJD je antwoord als pure JSON, geen extra tekst, geen markdown.`
+    : `Je bent een ervaren Nederlandse basisschoolleraar die huiswerkopdrachten maakt voor groep ${group}. Schrijf altijd in correct, helder Nederlands. Nooit antwoorden of antwoordsleutels vermelden.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 1500,
         system: systemInstruction,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -695,36 +867,67 @@ async function generate() {
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text || 'Geen antwoord ontvangen.';
+    const text = data.content?.[0]?.text || '';
     const now = new Date().toLocaleDateString('nl-NL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
-    document.getElementById('outputPanel').innerHTML = `
-      <div class="output-header">
-        <div>
-          <div class="output-title">${currentSubject.emoji} ${currentSubject.name} — Groep ${group}</div>
-          <div class="output-meta">${topic} · ${num} vragen · ${diff} · ${now}</div>
-        </div>
-        <div class="output-actions">
-          <button class="print-btn primary" onclick="window.print()">🖨 Afdrukken</button>
-        </div>
-      </div>
-      <div style="margin-bottom:1.25rem; display:flex; gap:2rem; font-size:14px; color:#6b7280; border-bottom:1px dashed #e5e7eb; padding-bottom:1rem;">
-        <span>Naam: <span style="border-bottom:1px solid #333; min-width:180px; display:inline-block;">&nbsp;</span></span>
-        <span>Datum: <span style="border-bottom:1px solid #333; min-width:120px; display:inline-block;">&nbsp;</span></span>
-      </div>
-      <div class="questions-output">${escHtml(text)}</div>
+    if (online) {
+      // parse JSON questions
+      let questions = [];
+      let begrijpendTekst = '';
+      try {
+        const clean = text.replace(/```json|```/g, '').trim();
+        if (currentSubject.id === 'begrijpend') {
+          const parsed = JSON.parse(clean);
+          begrijpendTekst = parsed.tekst || '';
+          questions = parsed.vragen || [];
+        } else {
+          questions = JSON.parse(clean);
+        }
+      } catch(e) {
+        throw new Error('Kon vragen niet verwerken. Probeer opnieuw.');
+      }
 
-      <div class="score-section">
-        <div class="score-section-title">✅ Score invullen</div>
-        <div class="score-inputs">
-          <label>Hoeveel goed?</label>
-          <input type="number" class="score-number-input" id="scoreCorrect" min="0" max="${num}" placeholder="0" />
-          <span class="score-divider">van de</span>
-          <input type="number" class="score-number-input" id="scoreTotal" min="1" value="${num}" />
-          <button class="score-save-btn" onclick="saveScore()">💾 Opslaan</button>
+      document.getElementById('outputPanel').innerHTML = `
+        <div class="output-header">
+          <div>
+            <div class="output-title">${currentSubject.emoji} ${currentSubject.name} — Groep ${group}</div>
+            <div class="output-meta">${topic} · ${num} vragen · ${diff} · 💻 Online modus</div>
+          </div>
         </div>
-        <div class="score-result" id="scoreResult" style="display:none;"></div>
-      </div>`;
+        <div id="onlineQuestionsContainer">
+          ${renderOnlineQuestions(questions, begrijpendTekst)}
+        </div>`;
+
+    } else {
+      // print mode — same as before
+      document.getElementById('outputPanel').innerHTML = `
+        <div class="output-header">
+          <div>
+            <div class="output-title">${currentSubject.emoji} ${currentSubject.name} — Groep ${group}</div>
+            <div class="output-meta">${topic} · ${num} vragen · ${diff} · ${now}</div>
+          </div>
+          <div class="output-actions">
+            <button class="print-btn primary" onclick="window.print()">🖨 Afdrukken</button>
+          </div>
+        </div>
+        <div style="margin-bottom:1.25rem; display:flex; gap:2rem; font-size:14px; color:#6b7280; border-bottom:1px dashed #e5e7eb; padding-bottom:1rem;">
+          <span>Naam: <span style="border-bottom:1px solid #333; min-width:180px; display:inline-block;">&nbsp;</span></span>
+          <span>Datum: <span style="border-bottom:1px solid #333; min-width:120px; display:inline-block;">&nbsp;</span></span>
+        </div>
+        <div class="questions-output">${escHtml(text)}</div>
+
+        <div class="score-section">
+          <div class="score-section-title">✅ Score invullen</div>
+          <div class="score-inputs">
+            <label>Hoeveel goed?</label>
+            <input type="number" class="score-number-input" id="scoreCorrect" min="0" max="${num}" placeholder="0" />
+            <span class="score-divider">van de</span>
+            <input type="number" class="score-number-input" id="scoreTotal" min="1" value="${num}" />
+            <button class="score-save-btn" onclick="saveScore()">💾 Opslaan</button>
+          </div>
+          <div class="score-result" id="scoreResult" style="display:none;"></div>
+        </div>`;
+    }
 
   } catch (e) {
     document.getElementById('outputPanel').innerHTML = `
