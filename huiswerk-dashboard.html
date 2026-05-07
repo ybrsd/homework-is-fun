@@ -416,7 +416,7 @@
 <script>
 const SUBJECTS = [
   { id:'rekenen',    emoji:'🔢', name:'Rekenen',           hint:'Sommen & getallen',
-    topics:['Optellen & aftrekken','Vermenigvuldigen','Delen','Breuken','Kommagetallen','Meten & gewichten','Tijd & klok','Meetkunde'] },
+    topics:['Optellen & aftrekken','Vermenigvuldigen','Delen','Breuken','Kommagetallen','Meten & gewichten','Tijd & klok','Meetkunde','Vraagstukken'] },
   { id:'taal',       emoji:'✏️', name:'Taal',              hint:'Grammatica & zinnen',
     topics:['Werkwoorden','Zinnen maken','Lidwoorden','Verleden tijd','Samengestelde woorden','Synoniemen','Woordsoorten','Enkelvoud & meervoud'] },
   { id:'spelling',   emoji:'🔤', name:'Spelling',          hint:'Woorden correct schrijven',
@@ -424,7 +424,7 @@ const SUBJECTS = [
   { id:'begrijpend', emoji:'📖', name:'Begrijpend lezen',  hint:'Teksten begrijpen',
     topics:['Informatieve tekst','Verhalende tekst','Krantenartikel','Instructietekst','Reclametekst','Natuurtekst'] },
   { id:'topografie', emoji:'🗺️', name:'Topografie',        hint:'Landen, steden & rivieren',
-    topics:['Provincies Nederland','Steden Nederland','Rivieren Nederland','Europa landen','Europa hoofdsteden','Werelddelen','Zeeën & oceanen'] },
+    topics:['Provincies Nederland','Steden Nederland','Rivieren & meren Nederland','Bergen & landschappen Nederland','Buren van Nederland','Wereldsteden & hoofdsteden','Bekende monumenten wereldwijd'] },
   { id:'engels',     emoji:'🇬🇧', name:'Engels',            hint:'Engelse woorden & zinnen',
     topics:['Kleuren & vormen','Dieren','Familie','School & spullen','Voedsel','Getallen & tijd','Dagelijks leven','Werkwoorden'] },
   { id:'geschiedenis',emoji:'🏛️',name:'Geschiedenis',      hint:'Tijdvakken & gebeurtenissen',
@@ -640,7 +640,7 @@ function buildPrompt(subject, group, topic, num, diff) {
     taal:       `Maak ${num} taalvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Schrijf alleen de genummerde vragen, geen antwoorden. Begin direct met "1."`,
     spelling:   `Maak ${num} spellingvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Mix van invulvragen en meerkeuzevragen. Geen antwoorden. Begin direct met "1."`,
     begrijpend: `Schrijf een korte tekst (${topic.toLowerCase()}, ongeveer 120 woorden, passend voor groep ${group}). Daarna ${num} begrijpend leesvragen. Moeilijkheid: ${diff}.\n\nFormaat:\nTEKST:\n[tekst hier]\n\nVRAGEN:\n1. [vraag]\n...geen antwoorden.`,
-    topografie: `Maak ${num} topografievragen over: ${topic}. Groep ${group}, moeilijkheid: ${diff}. Gebruik afwisselende vraagtypes. Geen antwoorden. Begin direct met "1."`,
+    topografie: `Maak ${num} topografievragen voor groep ${group}, moeilijkheid: ${diff}. Onderwerp: ${topic}. Gebruik ongeveer 80% vragen over Nederland (provincies, steden, rivieren, landschappen) en 20% over de rest van de wereld (bekende hoofdsteden, makkelijk herkenbare monumenten zoals de Eiffeltoren, Big Ben, etc.). Kindvriendelijke taal, afwisselende vraagtypes. Geen antwoorden. Begin direct met "1."`,
     engels:     `Maak ${num} Engelse oefenvragen voor groep ${group} (leeftijd ${age} jaar). Onderwerp: ${topic}. Moeilijkheid: ${diff}. Mix van vertalen, invullen en kiezen. Geen antwoorden. Begin direct met "1."`,
     geschiedenis:`Maak ${num} geschiedenisvragen over: ${topic}. Groep ${group}, moeilijkheid: ${diff}. Kindvriendelijke taal. Geen antwoorden. Begin direct met "1."`,
     natuur:     `Maak ${num} natuur & milieuvragen over: ${topic}. Groep ${group}, moeilijkheid: ${diff}. Prikkelende, nieuwsgierig makende vragen. Geen antwoorden. Begin direct met "1."`,
