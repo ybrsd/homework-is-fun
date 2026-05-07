@@ -294,7 +294,8 @@ let currentGroup = 5;
 let currentSubject = null;
 
 // ── API KEY ──
-function getKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+const HARDCODED_KEY = 'YOUR_API_KEY_HERE';
+function getKey() { return HARDCODED_KEY || localStorage.getItem('anthropic_api_key') || ''; }
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
   if (!val) { alert('Voer een geldige API-sleutel in.'); return; }
