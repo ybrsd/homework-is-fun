@@ -769,13 +769,13 @@ function renderDicteeQuestions(words) {
   window._dicteeWords = words;
   return html;
 }
-function checkDictee() {
+function normalizeDictee(s) { return s.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_~()?!'"]/g, '').replace(/\s+/g, ' ').trim(); }`
+  function checkDictee() {
   var words = window._dicteeWords || []; var correct = 0;
   words.forEach(function(w, i) {
     var inp = document.getElementById('ans-'+i); var fb = document.getElementById('fb-'+i);
-    var given = (inp ? inp.value.trim() : '').toLowerCase(); var expected = w.woord.toLowerCase();
-    var isCorrect = given === expected;
-    if (inp) inp.className = 'online-answer-input ' + (isCorrect ? 'correct' : 'wrong');
+    var given = normalizeDictee(inp ? inp.value : '');
+var isCorrect = given === normalizeDictee(w.woord);    if (inp) inp.className = 'online-answer-input ' + (isCorrect ? 'correct' : 'wrong');
     if (fb) { fb.textContent = isCorrect ? '\u2705 Goed!' : '\u274C Het is: ' + w.woord; fb.className = 'answer-feedback ' + (isCorrect ? 'correct' : 'wrong'); fb.style.display = 'inline-block'; }
     if (isCorrect) correct++;
   });
