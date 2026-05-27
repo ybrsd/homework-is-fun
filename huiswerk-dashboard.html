@@ -49,10 +49,6 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
 .group-tab { padding: 10px 28px; border: 2.5px solid var(--border); border-radius: var(--radius-pill); font-size: 15px; font-weight: 800; cursor: pointer; background: var(--white); color: var(--text-muted); transition: all 0.18s; font-family: inherit; }
 .group-tab.active { background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; border-color: transparent; box-shadow: 0 4px 14px rgba(139,92,246,0.35); transform: translateY(-1px); }
 .group-tab:hover:not(.active) { border-color: var(--purple); color: var(--purple); transform: translateY(-1px); }
-.group-tab.tab-groep5 { background: linear-gradient(135deg, #f0eeff, #ede9fe); border-color: #c4b5fd; color: #5b21b6; }
-.group-tab.tab-groep5:hover { background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-color: #8b5cf6; transform: translateY(-1px); }
-.group-tab.tab-groep6 { background: linear-gradient(135deg, #fff0fb, #ffe8f5); border-color: #ffb3e6; color: #c4387f; }
-.group-tab.tab-groep6:hover { background: linear-gradient(135deg, #ffe8f5, #ffd6f0); border-color: #ff6bb5; transform: translateY(-1px); }
 .subjects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin-bottom: 2rem; }
 .subject-card { border-radius: var(--radius); padding: 1.2rem; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 8px; position: relative; border: 3px solid transparent; }
 .subject-card:nth-child(12n+1)  { background: #FFF0FB; border-color: #FFB3E6; }
@@ -226,7 +222,7 @@ select:focus { outline: 3px solid var(--purple); outline-offset: 1px; border-col
   <div class="section-label">&#x1F43C; Kies een groep</div>
   <div class="group-tabs">
     <button class="group-tab active" id="tab5" onclick="setGroup(5)">Groep 5</button>
-    <button class="group-tab tab-groep6" id="tab6" onclick="setGroup(6)">Groep 6</button>
+    <button class="group-tab" id="tab6" onclick="setGroup(6)">Groep 6</button>
     <button class="group-tab holiday5" id="tabH5" onclick="setHoliday(5)">&#x1F334; Vakantie Groep 5</button>
     <button class="group-tab holiday6" id="tabH6" onclick="setHoliday(6)">&#x1F3D6; Vakantie Groep 6</button>
   </div>
@@ -371,7 +367,6 @@ function openScoreModal() { sbMonth = monthKey(); renderScoreboard(); document.g
 function closeScoreModal(e){ if (!e || e.target === document.getElementById('scoreModalOverlay')) document.getElementById('scoreModalOverlay').style.display = 'none'; }
 function clearScores() { if (confirm('Alle scores wissen?')) { localStorage.removeItem('homework_scores_fm'); renderScoreboard(); renderSubjects(); } }
 
-// FIX 3: Improved scoreboard with clear per-player scores, averages and progress bars
 function renderScoreboard() {
   var all = getScores();
   var cur = monthKey();
@@ -482,8 +477,8 @@ var HOLIDAY_THEMES = [
 
 function setHoliday(g) {
   holidayGroup = g; currentSubject = null; selectedTheme = null;
-  document.getElementById('tab5').className = 'group-tab tab-groep5';
-  document.getElementById('tab6').className = 'group-tab tab-groep6';
+  document.getElementById('tab5').className = 'group-tab';
+  document.getElementById('tab6').className = 'group-tab';
   document.getElementById('tabH5').className = 'group-tab holiday5' + (g===5?' active':'');
   document.getElementById('tabH6').className = 'group-tab holiday6' + (g===6?' active':'');
   document.getElementById('configPanel').style.display = 'none';
@@ -494,11 +489,10 @@ function setHoliday(g) {
   document.getElementById('outputPanel').innerHTML = '<span class="empty-hint">&#x1F334; Kies een vakantie thema en genereer je huiswerk!</span>';
 }
 
-// FIX 2: setGroup always restores subjects grid and section labels properly
 function setGroup(g) {
   currentGroup = g; holidayGroup = null; selectedTheme = null;
-  document.getElementById('tab5').className = 'group-tab' + (g===5 ? ' active' : ' tab-groep5');
-  document.getElementById('tab6').className = 'group-tab' + (g===6 ? ' active' : ' tab-groep6');
+  document.getElementById('tab5').className = 'group-tab' + (g===5 ? ' active' : '');
+  document.getElementById('tab6').className = 'group-tab' + (g===6 ? ' active' : '');
   document.getElementById('tabH5').className = 'group-tab holiday5';
   document.getElementById('tabH6').className = 'group-tab holiday6';
   document.getElementById('holidayPanel').style.display = 'none';
@@ -566,7 +560,7 @@ async function generateHoliday() {
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({ model:'claude-opus-4-5', max_tokens:4000, system:'Je bent een Nederlandse basisschoolleraar. Schrijf helder Nederlands. Nooit antwoorden vermelden. Gebruik altijd 1) 2) 3) voor nummering, nooit 1. 2. 3.', messages:[{role:'user',content:prompt}] })
+      body:JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:4000, system:'Je bent een Nederlandse basisschoolleraar. Schrijf helder Nederlands. Nooit antwoorden vermelden. Gebruik altijd 1) 2) 3) voor nummering, nooit 1. 2. 3.', messages:[{role:'user',content:prompt}] })
     });
     if (!res.ok) { var err = await res.json().catch(function(){return{};}); throw new Error((err.error&&err.error.message)||'HTTP '+res.status); }
     var data = await res.json();
@@ -707,7 +701,7 @@ async function checkAnswers() {
   var prompt = 'Je bent een vriendelijke basisschoolleraar. Controleer de antwoorden van een kind. Kleine spelfouten tellen als goed. ALLEEN JSON array: [{"correct":true/false,"feedback":"kort feedbackzinnetje NL max 8 woorden"},...]\n\n'
     + answers.map(function(a,i){ return (i+1)+'. Vraag: "'+a.q+'" | Correct: "'+a.correct+'" | Gegeven: "'+a.given+'"'; }).join('\n');
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({ model:'claude-opus-4-5', max_tokens:1024, messages:[{role:'user',content:prompt}] }) });
+    var res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1024, messages:[{role:'user',content:prompt}] }) });
     var data = await res.json();
     var text = (data.content&&data.content[0]&&data.content[0].text) || '[]';
     var results = JSON.parse(text.replace(/```json|```/g,'').trim());
@@ -763,7 +757,6 @@ function renderDicteeQuestions(words) {
   return html;
 }
 
-// FIX 1: Normalize dictee answers — ignore capitals, punctuation and extra spaces
 function normalizeDictee(s) {
   return String(s).trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_~()?!'"«»]/g, '').replace(/\s+/g, ' ').trim();
 }
@@ -807,7 +800,7 @@ async function generate() {
   var prompt = buildPrompt(currentSubject, group, topic, num, diff, online);
   var sys = online ? 'Je bent een Nederlandse basisschoolleraar. Geef ALTIJD pure JSON terug, geen andere tekst.' : 'Je bent een Nederlandse basisschoolleraar voor groep '+group+'. Schrijf helder Nederlands. Nooit antwoorden vermelden. Gebruik altijd 1) 2) 3) voor nummering, nooit 1. 2. 3.';
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({ model:'claude-opus-4-5', max_tokens:1500, system:sys, messages:[{role:'user',content:prompt}] }) });
+    var res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1500, system:sys, messages:[{role:'user',content:prompt}] }) });
     if (!res.ok) { var err = await res.json().catch(function(){return{};}); throw new Error((err.error&&err.error.message)||'HTTP '+res.status); }
     var data = await res.json();
     var text = (data.content&&data.content[0]&&data.content[0].text) || '';
