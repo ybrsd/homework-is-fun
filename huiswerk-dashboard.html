@@ -49,10 +49,10 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
 .group-tab { padding: 10px 28px; border: 2.5px solid var(--border); border-radius: var(--radius-pill); font-size: 15px; font-weight: 800; cursor: pointer; background: var(--white); color: var(--text-muted); transition: all 0.18s; font-family: inherit; }
 .group-tab.active { background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; border-color: transparent; box-shadow: 0 4px 14px rgba(139,92,246,0.35); transform: translateY(-1px); }
 .group-tab:hover:not(.active) { border-color: var(--purple); color: var(--purple); transform: translateY(-1px); }
-.group-tab#tab5:not(.active) { background: linear-gradient(135deg, #f0eeff, #ede9fe); border-color: #c4b5fd; color: #5b21b6; }
-.group-tab#tab5:not(.active):hover { background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-color: #8b5cf6; transform: translateY(-1px); }
-.group-tab#tab6:not(.active) { background: linear-gradient(135deg, #fff0fb, #ffe8f5); border-color: #ffb3e6; color: #c4387f; }
-.group-tab#tab6:not(.active):hover { background: linear-gradient(135deg, #ffe8f5, #ffd6f0); border-color: #ff6bb5; transform: translateY(-1px); }
+.group-tab.tab-groep5 { background: linear-gradient(135deg, #f0eeff, #ede9fe); border-color: #c4b5fd; color: #5b21b6; }
+.group-tab.tab-groep5:hover { background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-color: #8b5cf6; transform: translateY(-1px); }
+.group-tab.tab-groep6 { background: linear-gradient(135deg, #fff0fb, #ffe8f5); border-color: #ffb3e6; color: #c4387f; }
+.group-tab.tab-groep6:hover { background: linear-gradient(135deg, #ffe8f5, #ffd6f0); border-color: #ff6bb5; transform: translateY(-1px); }
 .subjects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin-bottom: 2rem; }
 .subject-card { border-radius: var(--radius); padding: 1.2rem; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 8px; position: relative; border: 3px solid transparent; }
 .subject-card:nth-child(12n+1)  { background: #FFF0FB; border-color: #FFB3E6; }
@@ -226,7 +226,7 @@ select:focus { outline: 3px solid var(--purple); outline-offset: 1px; border-col
   <div class="section-label">&#x1F43C; Kies een groep</div>
   <div class="group-tabs">
     <button class="group-tab active" id="tab5" onclick="setGroup(5)">Groep 5</button>
-    <button class="group-tab" id="tab6" onclick="setGroup(6)">Groep 6</button>
+    <button class="group-tab tab-groep6" id="tab6" onclick="setGroup(6)">Groep 6</button>
     <button class="group-tab holiday5" id="tabH5" onclick="setHoliday(5)">&#x1F334; Vakantie Groep 5</button>
     <button class="group-tab holiday6" id="tabH6" onclick="setHoliday(6)">&#x1F3D6; Vakantie Groep 6</button>
   </div>
@@ -482,8 +482,8 @@ var HOLIDAY_THEMES = [
 
 function setHoliday(g) {
   holidayGroup = g; currentSubject = null; selectedTheme = null;
-  document.getElementById('tab5').className = 'group-tab';
-  document.getElementById('tab6').className = 'group-tab';
+  document.getElementById('tab5').className = 'group-tab tab-groep5';
+  document.getElementById('tab6').className = 'group-tab tab-groep6';
   document.getElementById('tabH5').className = 'group-tab holiday5' + (g===5?' active':'');
   document.getElementById('tabH6').className = 'group-tab holiday6' + (g===6?' active':'');
   document.getElementById('configPanel').style.display = 'none';
@@ -497,8 +497,8 @@ function setHoliday(g) {
 // FIX 2: setGroup always restores subjects grid and section labels properly
 function setGroup(g) {
   currentGroup = g; holidayGroup = null; selectedTheme = null;
-  document.getElementById('tab5').className = 'group-tab' + (g===5 ? ' active' : '');
-  document.getElementById('tab6').className = 'group-tab' + (g===6 ? ' active' : '');
+  document.getElementById('tab5').className = 'group-tab' + (g===5 ? ' active' : ' tab-groep5');
+  document.getElementById('tab6').className = 'group-tab' + (g===6 ? ' active' : ' tab-groep6');
   document.getElementById('tabH5').className = 'group-tab holiday5';
   document.getElementById('tabH6').className = 'group-tab holiday6';
   document.getElementById('holidayPanel').style.display = 'none';
